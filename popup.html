@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Facebook Post Extractor</title>
+  <style>
+    body {
+      width: 350px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 15px 0;
+      color: #1877f2;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #1877f2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    button:hover {
+      background: #166fe5;
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    #status {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f0f2f5;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #65676b;
+      display: none;
+    }
+
+    #status.show {
+      display: block;
+    }
+
+    #status.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    #status.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .btn-secondary {
+      background: #42b72a;
+    }
+
+    .btn-secondary:hover {
+      background: #36a420;
+    }
+
+    #postCount {
+      font-weight: bold;
+      color: #1877f2;
+    }
+  </style>
+</head>
+<body>
+  <h1>📝 Facebook Post Extractor</h1>
+
+  <div class="input-group">
+    <label for="profileId">Profile ID:</label>
+    <input type="text" id="profileId" placeholder="100090485289846">
+  </div>
+
+  <div class="input-group">
+    <label for="maxPosts">Max Posts (0 = all):</label>
+    <input type="number" id="maxPosts" value="10" min="0">
+  </div>
+
+  <button id="extractBtn">🚀 Extract Posts</button>
+  <button id="downloadBtn" class="btn-secondary" style="display:none;">📥 Download JSON</button>
+
+  <div id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

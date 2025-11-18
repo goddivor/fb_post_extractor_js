@@ -1,0 +1,130 @@
+Request URL
+https://www.facebook.com/api/graphql/
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+[2a03:2880:f138:83:face:b00c:0:25de]:443
+Referrer Policy
+strict-origin-when-cross-origin
+access-control-allow-credentials
+true
+access-control-allow-methods
+OPTIONS
+access-control-allow-origin
+https://www.facebook.com
+access-control-expose-headers
+X-FB-Debug, X-Loader-Length, X-Stack, Error-MID
+alt-svc
+h3=":443"; ma=86400
+cache-control
+private, no-cache, no-store, must-revalidate
+content-encoding
+zstd
+content-security-policy
+default-src blob: 'self' https://*.fbsbx.com *.facebook.com *.fbcdn.net *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;script-src *.facebook.com *.fbcdn.net *.facebook.net 127.0.0.1:* 'nonce-yjRsjaYU' blob: 'self' connect.facebook.net 'wasm-unsafe-eval' *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net facebook.net;style-src *.fbcdn.net data: *.facebook.com 'unsafe-inline' *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;connect-src *.facebook.com facebook.com *.fbcdn.net *.facebook.net wss://*.facebook.com:* wss://*.whatsapp.com:* wss://*.fbcdn.net attachment.fbsbx.com ws://localhost:* blob: *.cdninstagram.com 'self' http://localhost:3103 wss://gateway.facebook.com wss://edge-chat.facebook.com wss://snaptu-d.facebook.com wss://kaios-d.facebook.com/ v.whatsapp.net *.fbsbx.com *.fb.com *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net facebook.net;font-src data: *.facebook.com *.fbcdn.net *.fbsbx.com *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;img-src *.fbcdn.net *.facebook.com data: https://*.fbsbx.com facebook.com *.cdninstagram.com fbsbx.com fbcdn.net connect.facebook.net blob: android-webview-video-poster: *.whatsapp.net *.fb.com *.oculuscdn.com *.whatsapp.com whatsapp.com whatsapp.net *.facebook.net facebook.net https://trustly.one/ https://*.trustly.one/ https://paywithmybank.com/ https://*.paywithmybank.com/;media-src *.cdninstagram.com blob: *.fbcdn.net *.fbsbx.com www.facebook.com *.facebook.com data: *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;child-src data: blob: 'self' https://*.fbsbx.com *.facebook.com *.fbcdn.net *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;frame-src *.facebook.com *.fbsbx.com fbsbx.com data: www.instagram.com *.fbcdn.net accounts.meta.com *.accounts.meta.com *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net https://trustly.one/ https://*.trustly.one/ https://paywithmybank.com/ https://*.paywithmybank.com/;manifest-src data: blob: 'self' https://*.fbsbx.com *.facebook.com *.fbcdn.net *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;object-src data: blob: 'self' https://*.fbsbx.com *.facebook.com *.fbcdn.net *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;worker-src blob: *.facebook.com data: *.whatsapp.com whatsapp.com *.whatsapp.net whatsapp.net *.facebook.net facebook.net;block-all-mixed-content;upgrade-insecure-requests;report-uri https://www.facebook.com/csp/reporting/?m=t&minimize=0;
+content-type
+text/html; charset="utf-8"
+cross-origin-embedder-policy-report-only
+require-corp;report-to="coep_report"
+cross-origin-opener-policy
+same-origin-allow-popups
+cross-origin-resource-policy
+same-site
+date
+Tue, 18 Nov 2025 16:25:19 GMT
+document-policy
+force-load-at-top
+document-policy
+include-js-call-stacks-in-crash-reports
+expires
+Sat, 01 Jan 2000 00:00:00 GMT
+origin-agent-cluster
+?1
+origin-trial
+As6zWMEHoZzu3TLTe1FpfUM53LJQb7oIMJqM4jKI2Hb9giJvo38McPt9ijfZvJWfT+0pbtylGXHvuzRY5s2fXwgAAAB1eyJvcmlnaW4iOiJodHRwczovL3d3dy5mYWNlYm9vay5jb206NDQzIiwiZmVhdHVyZSI6IkNyYXNoUmVwb3J0aW5nU3RvcmFnZUFQSSIsImV4cGlyeSI6MTc2OTQ3MjAwMCwiaXNTdWJkb21haW4iOnRydWV9
+permissions-policy
+accelerometer=(), attribution-reporting=(self), autoplay=(), bluetooth=(), browsing-topics=(self), camera=(self "https://www.fbsbx.com"), ch-device-memory=(), ch-downlink=(), ch-dpr=(), ch-ect=(), ch-rtt=(), ch-save-data=(), ch-ua-arch=(), ch-ua-bitness=(), ch-viewport-height=(), ch-viewport-width=(), ch-width=(), clipboard-read=(self), clipboard-write=(self), compute-pressure=(), display-capture=(self), encrypted-media=(self), fullscreen=(self), gamepad=*, geolocation=(self), gyroscope=(), hid=(), idle-detection=(), interest-cohort=(self), keyboard-map=(), local-fonts=(), magnetometer=(), microphone=(self), midi=(), otp-credentials=(), payment=(), picture-in-picture=(self), private-state-token-issuance=(), publickey-credentials-get=(self), screen-wake-lock=(), serial=(), shared-storage=(), shared-storage-select-url=(), private-state-token-redemption=(), usb=(), unload=(self), window-management=(), xr-spatial-tracking=(self);report-to="permissions_policy"
+pragma
+no-cache
+priority
+u=1,i
+report-to
+{"max_age":2592000,"endpoints":[{"url":"https:\/\/www.facebook.com\/browser_reporting\/coop\/?minimize=0"}],"group":"coop_report","include_subdomains":true}, {"max_age":86400,"endpoints":[{"url":"https:\/\/www.facebook.com\/browser_reporting\/coep\/?minimize=0"}],"group":"coep_report"}, {"max_age":259200,"endpoints":[{"url":"https:\/\/www.facebook.com\/ajax\/comet_error_reports\/?device_level=high&brsid=7574102325105086927&comet_app_key=15&cpp=C3&cv=1030042324&st=1763483119280"}]}, {"max_age":21600,"endpoints":[{"url":"https:\/\/www.facebook.com\/ajax\/browser_error_reports\/"}],"group":"permissions_policy"}
+reporting-endpoints
+coop_report="https://www.facebook.com/browser_reporting/coop/?minimize=0", coep_report="https://www.facebook.com/browser_reporting/coep/?minimize=0", default="https://www.facebook.com/ajax/comet_error_reports/?device_level=high&brsid=7574102325105086927&comet_app_key=15&cpp=C3&cv=1030042324&st=1763483119280", permissions_policy="https://www.facebook.com/ajax/browser_error_reports/"
+strict-transport-security
+max-age=15552000; preload
+vary
+Origin
+vary
+Accept-Encoding
+x-content-type-options
+nosniff
+x-fb-connection-quality
+EXCELLENT; q=0.9, rtt=17, rtx=0, c=73, mss=1232, tbw=858765, tp=885, tpl=0, uplat=413, ullat=0
+x-fb-debug
+Nb/MRB5oBRlx/qOtMFr3ko+i0PrTpev/fWjFXwPx7aCy2Vce1e1hbqwr71Gbsj8Lcj+Nt1QVRwsGmkgMEMSGmw==
+x-frame-options
+DENY
+x-xss-protection
+0
+:authority
+www.facebook.com
+:method
+POST
+:path
+/api/graphql/
+:scheme
+https
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr,fr-FR;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6
+cache-control
+no-cache
+content-length
+6881
+content-type
+application/x-www-form-urlencoded
+cookie
+oo=v1; sb=bXwHaLzncccQemEKx69TtFkD; datr=9KUMaAl2cSgh9Bvy53Eqj-LX; dpr=1.25; c_user=100064558225015; fr=1d2Za2cBSaSySRK9W.AWebEmBJR2bb8p8CfybmsliPxn_T7Uar1m16fw8TH61gtD9WX2g.BpHJWG..AAA.0.0.BpHJWG.AWeCL98E7owRemw0-pJstW00tZA; xs=46%3A7COZTBXl0jScww%3A2%3A1763474458%3A-1%3A-1%3A%3AAczKsVKG572ND_igK33oU7VPNp6rjVgmhmoFG4ElUQ; presence=C%7B%22t3%22%3A%5B%5D%2C%22utc3%22%3A1763481256813%2C%22v%22%3A1%7D; wd=1080x738
+origin
+https://www.facebook.com
+pragma
+no-cache
+priority
+u=1, i
+referer
+https://www.facebook.com/runaakawasaki
+sec-ch-prefers-color-scheme
+dark
+sec-ch-ua
+"Chromium";v="142", "Microsoft Edge";v="142", "Not_A Brand";v="99"
+sec-ch-ua-full-version-list
+"Chromium";v="142.0.7444.163", "Microsoft Edge";v="142.0.3595.80", "Not_A Brand";v="99.0.0.0"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-model
+""
+sec-ch-ua-platform
+"Windows"
+sec-ch-ua-platform-version
+"15.0.0"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0
+x-asbd-id
+359341
+x-fb-friendly-name
+ProfileCometTimelineFeedRefetchQuery
+x-fb-lsd
+mUYjodCpyU5Up0N040QAAo
