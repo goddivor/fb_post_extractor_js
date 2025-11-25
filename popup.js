@@ -3,30 +3,25 @@ console.log('[FB Popup] Loaded');
 const extractBtn = document.getElementById('extractBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const statusDiv = document.getElementById('status');
-const profileIdInput = document.getElementById('profileId');
 const keywordsInput = document.getElementById('keywords');
 const stopDateInput = document.getElementById('stopDate');
 
 let extractedPosts = [];
+let detectedProfileId = null; // Stocker l'ID détecté
 
 // Valeurs par défaut
 const DEFAULT_KEYWORDS = 'cateno, luca, federico, basile';
 const DEFAULT_STOP_DATE = '2024-01-01';
 
 // Charger les valeurs sauvegardées au chargement du popup
-chrome.storage.local.get(['savedProfileId', 'savedKeywords', 'savedStopDate'], (result) => {
+chrome.storage.local.get(['savedKeywords', 'savedStopDate'], (result) => {
   console.log('[FB Popup] Loaded saved values:', result);
-
-  // Auto-remplir les valeurs sauvegardées
-  if (result.savedProfileId) {
-    profileIdInput.value = result.savedProfileId;
-  }
 
   keywordsInput.value = result.savedKeywords || DEFAULT_KEYWORDS;
   stopDateInput.value = result.savedStopDate || DEFAULT_STOP_DATE;
 });
 
-// Auto-remplir le Profile ID depuis la page Facebook (prioritaire)
+// Détecter le Profile ID depuis la page Facebook
 (async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -35,12 +30,12 @@ chrome.storage.local.get(['savedProfileId', 'savedKeywords', 'savedStopDate'], (
       const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProfileId' });
 
       if (response && response.profileId) {
-        profileIdInput.value = response.profileId;
-        console.log('[FB Popup] Auto-filled profile ID:', response.profileId);
+        detectedProfileId = response.profileId;
+        console.log('[FB Popup] Detected profile ID:', detectedProfileId);
       }
     }
   } catch (error) {
-    console.log('[FB Popup] Could not auto-fill profile ID:', error.message);
+    console.log('[FB Popup] Could not detect profile ID:', error.message);
   }
 })();
 
@@ -54,15 +49,14 @@ function showStatus(message, type = 'info') {
 // Démarrer l'extraction
 extractBtn.addEventListener('click', async () => {
   try {
-    const profileId = profileIdInput.value.trim();
     const keywords = keywordsInput.value
       .split(',')
       .map(k => k.trim())
       .filter(k => k.length > 0);
     const stopDate = stopDateInput.value; // Format YYYY-MM-DD
 
-    if (!profileId) {
-      showStatus('Please enter a Profile ID', 'error');
+    if (!detectedProfileId) {
+      showStatus('Could not detect Profile ID. Please refresh the Facebook page.', 'error');
       return;
     }
 
@@ -73,11 +67,10 @@ extractBtn.addEventListener('click', async () => {
 
     // Sauvegarder les valeurs pour la prochaine fois
     chrome.storage.local.set({
-      savedProfileId: profileId,
       savedKeywords: keywordsInput.value,
       savedStopDate: stopDate
     }, () => {
-      console.log('[FB Popup] Saved values:', { profileId, keywords, stopDate });
+      console.log('[FB Popup] Saved values:', { keywords, stopDate });
     });
 
     extractBtn.disabled = true;
@@ -95,10 +88,10 @@ extractBtn.addEventListener('click', async () => {
       return;
     }
 
-    // Envoyer le message au content script
+    // Envoyer le message au content script avec l'ID détecté
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'extractPosts',
-      profileId: profileId,
+      profileId: detectedProfileId,
       keywords: keywords,
       stopDate: stopDate
     });
