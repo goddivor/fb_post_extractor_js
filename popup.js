@@ -5,7 +5,6 @@ const downloadBtn = document.getElementById('downloadBtn');
 const statusDiv = document.getElementById('status');
 const profileIdInput = document.getElementById('profileId');
 const keywordsInput = document.getElementById('keywords');
-const maxPostsInput = document.getElementById('maxPosts');
 const stopDateInput = document.getElementById('stopDate');
 
 let extractedPosts = [];
@@ -15,7 +14,7 @@ const DEFAULT_KEYWORDS = 'cateno, luca, federico, basile';
 const DEFAULT_STOP_DATE = '2024-01-01';
 
 // Charger les valeurs sauvegardées au chargement du popup
-chrome.storage.local.get(['savedProfileId', 'savedKeywords', 'savedMaxPosts', 'savedStopDate'], (result) => {
+chrome.storage.local.get(['savedProfileId', 'savedKeywords', 'savedStopDate'], (result) => {
   console.log('[FB Popup] Loaded saved values:', result);
 
   // Auto-remplir les valeurs sauvegardées
@@ -24,11 +23,6 @@ chrome.storage.local.get(['savedProfileId', 'savedKeywords', 'savedMaxPosts', 's
   }
 
   keywordsInput.value = result.savedKeywords || DEFAULT_KEYWORDS;
-
-  if (result.savedMaxPosts !== undefined) {
-    maxPostsInput.value = result.savedMaxPosts;
-  }
-
   stopDateInput.value = result.savedStopDate || DEFAULT_STOP_DATE;
 });
 
@@ -65,7 +59,6 @@ extractBtn.addEventListener('click', async () => {
       .split(',')
       .map(k => k.trim())
       .filter(k => k.length > 0);
-    const maxPosts = parseInt(maxPostsInput.value) || 0;
     const stopDate = stopDateInput.value; // Format YYYY-MM-DD
 
     if (!profileId) {
@@ -73,14 +66,18 @@ extractBtn.addEventListener('click', async () => {
       return;
     }
 
+    if (!stopDate) {
+      showStatus('Please select a stop date', 'error');
+      return;
+    }
+
     // Sauvegarder les valeurs pour la prochaine fois
     chrome.storage.local.set({
       savedProfileId: profileId,
       savedKeywords: keywordsInput.value,
-      savedMaxPosts: maxPosts,
       savedStopDate: stopDate
     }, () => {
-      console.log('[FB Popup] Saved values:', { profileId, keywords, maxPosts, stopDate });
+      console.log('[FB Popup] Saved values:', { profileId, keywords, stopDate });
     });
 
     extractBtn.disabled = true;
@@ -102,8 +99,7 @@ extractBtn.addEventListener('click', async () => {
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'extractPosts',
       profileId: profileId,
-      keywords: keywords, // Passer les keywords
-      maxPosts: maxPosts,
+      keywords: keywords,
       stopDate: stopDate
     });
 

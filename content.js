@@ -53,11 +53,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Received extract request:', {
       profileId: request.profileId,
       keywords: request.keywords,
-      maxPosts: request.maxPosts,
       stopDate: request.stopDate
     });
 
-    extractPosts(request.profileId, request.keywords, request.maxPosts, request.stopDate)
+    extractPosts(request.profileId, request.keywords, request.stopDate)
       .then(posts => {
         console.log('Extraction complete:', posts.length, 'posts');
         sendResponse({ success: true, posts: posts });
@@ -78,12 +77,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Fonction principale d'extraction
-async function extractPosts(profileId, keywords = [], maxPosts = 10, stopDate = null) {
+async function extractPosts(profileId, keywords = [], stopDate = null) {
   try {
     console.log('Starting extraction...');
     console.log('Profile ID:', profileId);
     console.log('Keywords:', keywords);
-    console.log('Max Posts:', maxPosts);
     console.log('Stop Date:', stopDate);
 
     // Convertir stopDate en timestamp (début de la journée)
@@ -93,6 +91,8 @@ async function extractPosts(profileId, keywords = [], maxPosts = 10, stopDate = 
       stopDateObj.setHours(0, 0, 0, 0); // Début de la journée
       stopTimestamp = Math.floor(stopDateObj.getTime() / 1000);
       console.log('Stop timestamp:', stopTimestamp, '(' + stopDateObj.toISOString() + ')');
+    } else {
+      console.warn('No stop date provided - will extract all posts!');
     }
 
     // Initialiser le contexte Facebook
@@ -104,66 +104,53 @@ async function extractPosts(profileId, keywords = [], maxPosts = 10, stopDate = 
     let cursor = null;
     let hasNextPage = true;
     let pageCount = 0;
-    let reachedStopDate = false;
 
-    while (hasNextPage && (maxPosts === 0 || allPosts.length < maxPosts) && !reachedStopDate) {
+    while (hasNextPage) {
       pageCount++;
       console.log(`Fetching page ${pageCount}...`);
 
-      // Calculer combien de posts demander
-      let postsToFetch = 10;
-      if (maxPosts > 0) {
-        const remaining = maxPosts - allPosts.length;
-        postsToFetch = Math.min(remaining, 10);
-      }
-
-      console.log(`Requesting ${postsToFetch} posts...`);
-
-      const response = await fetchPostsPage(profileId, cursor, postsToFetch);
+      // Toujours demander 10 posts par page
+      const response = await fetchPostsPage(profileId, cursor, 10);
 
       if (response.posts && response.posts.length > 0) {
         // Vérifier la date d'arrêt pour chaque post
+        let reachedStopDate = false;
+
         for (const post of response.posts) {
           // Vérifier si on a atteint la date limite
           if (stopTimestamp && post.creation_time > 0 && post.creation_time < stopTimestamp) {
-            console.log(`Reached stop date! Post date: ${new Date(post.creation_time * 1000).toISOString()}`);
+            console.log(`✓ Reached stop date! Post date: ${new Date(post.creation_time * 1000).toISOString()}`);
             reachedStopDate = true;
             break;
           }
 
           allPosts.push(post);
-
-          // Arrêter si on a atteint maxPosts
-          if (maxPosts > 0 && allPosts.length >= maxPosts) {
-            break;
-          }
         }
 
         console.log(`Got ${response.posts.length} posts (total: ${allPosts.length})`);
+
+        // Arrêter si on a atteint la date limite
+        if (reachedStopDate) {
+          console.log('Stopping extraction: reached stop date');
+          break;
+        }
       }
 
       cursor = response.cursor;
       hasNextPage = response.hasNextPage && cursor;
 
-      if (maxPosts > 0 && allPosts.length >= maxPosts) {
-        break;
-      }
-
-      if (reachedStopDate) {
-        console.log('Stopping extraction: reached stop date');
-        break;
-      }
-
       // Rate limiting - attendre 2 secondes entre chaque page
-      if (hasNextPage && !reachedStopDate) {
+      if (hasNextPage) {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
+    console.log(`Extraction complete: ${allPosts.length} posts extracted`);
+
     // Stocker les keywords pour une utilisation future (filtrage PDF)
     allPosts.keywords = keywords;
 
-    return maxPosts > 0 ? allPosts.slice(0, maxPosts) : allPosts;
+    return allPosts;
   } catch (error) {
     console.error('extractPosts error:', error);
     throw error;
