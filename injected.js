@@ -66,12 +66,44 @@
     let profileId = null;
 
     try {
+      // Méthode 0: ProfileCometTimelineFeedQueryRelayPreloader (PRIORITAIRE - très fiable)
+      if (!profileId) {
+        try {
+          const regex = /"adp_ProfileCometTimelineFeedQueryRelayPreloader_[\w.]+",({.*}})]/g;
+          const text = document.body.textContent;
+          let match;
+          const results = [];
+
+          while ((match = regex.exec(text)) !== null) {
+            try {
+              const parsed = JSON.parse(match[1]).__bbox.result;
+              results.push(parsed);
+            } catch (e) {
+              // Ignore parsing errors
+            }
+          }
+
+          if (results.length > 0) {
+            // L'ID peut être soit directement dans results[0].id soit dans results[0].data.user.id
+            const extractedId = results[0]?.id || results[0]?.data?.user?.id;
+            if (extractedId && /^\d+$/.test(extractedId)) {
+              profileId = extractedId;
+              console.log('Got profile ID from ProfileCometTimelineFeedQueryRelayPreloader:', profileId);
+            }
+          }
+        } catch (e) {
+          console.log('ProfileCometTimelineFeedQueryRelayPreloader extraction failed:', e);
+        }
+      }
+
       // Méthode 1: Vérifier si l'URL contient un ID numérique
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlId = urlParams.get('id');
-      if (urlId && /^\d+$/.test(urlId)) {
-        profileId = urlId;
-        console.log('Got profile ID from URL params:', profileId);
+      if (!profileId) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlId = urlParams.get('id');
+        if (urlId && /^\d+$/.test(urlId)) {
+          profileId = urlId;
+          console.log('Got profile ID from URL params:', profileId);
+        }
       }
 
       // Méthode 2: Utiliser require pour obtenir l'ID du profil (le plus fiable)

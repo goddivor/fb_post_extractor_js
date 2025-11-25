@@ -64,6 +64,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     return true; // Keep channel open for async response
   }
+
+  if (request.action === 'getProfileId') {
+    console.log('Popup requested profile ID, current value:', FB_CONTEXT.profileId);
+    sendResponse({ profileId: FB_CONTEXT.profileId || null });
+    return false;
+  }
 });
 
 // Fonction principale d'extraction
@@ -424,16 +430,37 @@ function extractPostData(node) {
     const rawAttachments = contentStory?.attachments || node.attachments || [];
 
     rawAttachments.forEach(attachment => {
-      const media = attachment.styles?.attachment?.media || attachment.media;
-      if (media && media.__typename === 'Photo') {
-        const photoImage = media.photo_image || media.viewer_image;
-        if (photoImage && photoImage.uri) {
-          attachments.push({
-            type: 'photo',
-            url: photoImage.uri,
-            width: photoImage.width,
-            height: photoImage.height
-          });
+      // Cas 1: Album avec plusieurs photos (all_subattachments)
+      if (attachment.styles?.attachment?.all_subattachments) {
+        const subattachments = attachment.styles.attachment.all_subattachments.nodes || [];
+        subattachments.forEach(sub => {
+          const media = sub.media;
+          if (media && media.__typename === 'Photo') {
+            const photoImage = media.viewer_image || media.photo_image;
+            if (photoImage && photoImage.uri) {
+              attachments.push({
+                type: 'photo',
+                url: photoImage.uri,
+                width: photoImage.width,
+                height: photoImage.height
+              });
+            }
+          }
+        });
+      }
+      // Cas 2: Photo unique
+      else {
+        const media = attachment.styles?.attachment?.media || attachment.media;
+        if (media && media.__typename === 'Photo') {
+          const photoImage = media.photo_image || media.viewer_image;
+          if (photoImage && photoImage.uri) {
+            attachments.push({
+              type: 'photo',
+              url: photoImage.uri,
+              width: photoImage.width,
+              height: photoImage.height
+            });
+          }
         }
       }
     });

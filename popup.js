@@ -1,5 +1,26 @@
 let extractedPosts = [];
 
+// Auto-remplir le Profile ID au chargement de la popup
+(async () => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (tab.url && tab.url.includes('facebook.com')) {
+      // Demander l'ID du profil au content script
+      const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProfileId' });
+
+      if (response && response.profileId) {
+        const profileIdInput = document.getElementById('profileId');
+        profileIdInput.value = response.profileId;
+        console.log('Auto-filled profile ID:', response.profileId);
+      }
+    }
+  } catch (error) {
+    // Ignorer les erreurs silencieusement (ex: si pas sur Facebook)
+    console.log('Could not auto-fill profile ID:', error.message);
+  }
+})();
+
 document.getElementById('extractBtn').addEventListener('click', async () => {
   const profileId = document.getElementById('profileId').value.trim();
   const maxPosts = parseInt(document.getElementById('maxPosts').value) || 0;
