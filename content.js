@@ -425,11 +425,40 @@ function extractPostData(node) {
       };
     }
 
-    // Attachments (images)
+    // Attachments (photos et vidéos)
     const attachments = [];
-    const rawAttachments = contentStory?.attachments || node.attachments || [];
+    let rawAttachments = [];
+
+    // Détection des reposts: si node.attached_story existe, c'est un repost
+    if (node.attached_story) {
+      // Pour les reposts, les attachments sont dans attached_story.comet_sections.attached_story.story.attached_story.comet_sections.attached_story_layout.story.attachments
+      try {
+        const attachedStorySection = node.comet_sections?.content?.story?.comet_sections?.attached_story?.story?.attached_story;
+        const attachedStoryLayout = attachedStorySection?.comet_sections?.attached_story_layout?.story;
+
+        if (attachedStoryLayout?.attachments && attachedStoryLayout.attachments.length > 0) {
+          rawAttachments.push(...attachedStoryLayout.attachments);
+          console.log('Found attachments in repost:', rawAttachments.length);
+        }
+      } catch (e) {
+        console.log('Error extracting repost attachments:', e);
+      }
+    } else {
+      // Posts normaux: essayer contentStory.attachments et node.attachments
+      if (contentStory?.attachments && contentStory.attachments.length > 0) {
+        rawAttachments.push(...contentStory.attachments);
+      }
+
+      if (node.attachments && node.attachments.length > 0) {
+        rawAttachments.push(...node.attachments);
+      }
+    }
 
     rawAttachments.forEach(attachment => {
+      // Ignorer les attachments vides (juste action_links sans media)
+      if (!attachment.styles && !attachment.media) {
+        return;
+      }
       // Cas 1: Album avec plusieurs photos (all_subattachments)
       if (attachment.styles?.attachment?.all_subattachments) {
         const subattachments = attachment.styles.attachment.all_subattachments.nodes || [];
@@ -448,9 +477,11 @@ function extractPostData(node) {
           }
         });
       }
-      // Cas 2: Photo unique
+      // Cas 2: Photo unique ou Vidéo
       else {
         const media = attachment.styles?.attachment?.media || attachment.media;
+
+        // Photo unique
         if (media && media.__typename === 'Photo') {
           const photoImage = media.photo_image || media.viewer_image;
           if (photoImage && photoImage.uri) {
@@ -459,6 +490,23 @@ function extractPostData(node) {
               url: photoImage.uri,
               width: photoImage.width,
               height: photoImage.height
+            });
+          }
+        }
+
+        // Vidéo
+        if (media && media.__typename === 'Video') {
+          const thumbnailImage = media.thumbnailImage || media.preferred_thumbnail?.image;
+          const videoUrl = media.url || media.permalink_url;
+
+          if (videoUrl) {
+            attachments.push({
+              type: 'video',
+              url: videoUrl,
+              thumbnail: thumbnailImage?.uri || null,
+              width: media.width || media.original_width,
+              height: media.height || media.original_height,
+              duration: media.playable_duration_in_ms ? Math.floor(media.playable_duration_in_ms / 1000) : null
             });
           }
         }
