@@ -50,9 +50,14 @@ injectScript();
 // Écouter les messages du popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractPosts') {
-    console.log('Received extract request, profileId:', request.profileId, 'maxPosts:', request.maxPosts);
+    console.log('Received extract request:', {
+      profileId: request.profileId,
+      keywords: request.keywords,
+      maxPosts: request.maxPosts,
+      stopDate: request.stopDate
+    });
 
-    extractPosts(request.profileId, request.maxPosts)
+    extractPosts(request.profileId, request.keywords, request.maxPosts, request.stopDate)
       .then(posts => {
         console.log('Extraction complete:', posts.length, 'posts');
         sendResponse({ success: true, posts: posts });
@@ -73,10 +78,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Fonction principale d'extraction
-async function extractPosts(profileId, maxPosts = 10) {
+async function extractPosts(profileId, keywords = [], maxPosts = 10, stopDate = null) {
   try {
     console.log('Starting extraction...');
     console.log('Profile ID:', profileId);
+    console.log('Keywords:', keywords);
+    console.log('Max Posts:', maxPosts);
+    console.log('Stop Date:', stopDate);
+
+    // Convertir stopDate en timestamp (début de la journée)
+    let stopTimestamp = null;
+    if (stopDate) {
+      const stopDateObj = new Date(stopDate);
+      stopDateObj.setHours(0, 0, 0, 0); // Début de la journée
+      stopTimestamp = Math.floor(stopDateObj.getTime() / 1000);
+      console.log('Stop timestamp:', stopTimestamp, '(' + stopDateObj.toISOString() + ')');
+    }
 
     // Initialiser le contexte Facebook
     await initializeFacebookContext();
@@ -87,18 +104,17 @@ async function extractPosts(profileId, maxPosts = 10) {
     let cursor = null;
     let hasNextPage = true;
     let pageCount = 0;
+    let reachedStopDate = false;
 
-    while (hasNextPage && (maxPosts === 0 || allPosts.length < maxPosts)) {
+    while (hasNextPage && (maxPosts === 0 || allPosts.length < maxPosts) && !reachedStopDate) {
       pageCount++;
       console.log(`Fetching page ${pageCount}...`);
 
       // Calculer combien de posts demander
-      // Si maxPosts = 0, demander 10 par page
-      // Sinon, demander le nombre restant (max 10 par requête pour ne pas surcharger)
       let postsToFetch = 10;
       if (maxPosts > 0) {
         const remaining = maxPosts - allPosts.length;
-        postsToFetch = Math.min(remaining, 10); // Max 10 par requête
+        postsToFetch = Math.min(remaining, 10);
       }
 
       console.log(`Requesting ${postsToFetch} posts...`);
@@ -106,7 +122,23 @@ async function extractPosts(profileId, maxPosts = 10) {
       const response = await fetchPostsPage(profileId, cursor, postsToFetch);
 
       if (response.posts && response.posts.length > 0) {
-        allPosts.push(...response.posts);
+        // Vérifier la date d'arrêt pour chaque post
+        for (const post of response.posts) {
+          // Vérifier si on a atteint la date limite
+          if (stopTimestamp && post.creation_time > 0 && post.creation_time < stopTimestamp) {
+            console.log(`Reached stop date! Post date: ${new Date(post.creation_time * 1000).toISOString()}`);
+            reachedStopDate = true;
+            break;
+          }
+
+          allPosts.push(post);
+
+          // Arrêter si on a atteint maxPosts
+          if (maxPosts > 0 && allPosts.length >= maxPosts) {
+            break;
+          }
+        }
+
         console.log(`Got ${response.posts.length} posts (total: ${allPosts.length})`);
       }
 
@@ -117,11 +149,19 @@ async function extractPosts(profileId, maxPosts = 10) {
         break;
       }
 
+      if (reachedStopDate) {
+        console.log('Stopping extraction: reached stop date');
+        break;
+      }
+
       // Rate limiting - attendre 2 secondes entre chaque page
-      if (hasNextPage) {
+      if (hasNextPage && !reachedStopDate) {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
+
+    // Stocker les keywords pour une utilisation future (filtrage PDF)
+    allPosts.keywords = keywords;
 
     return maxPosts > 0 ? allPosts.slice(0, maxPosts) : allPosts;
   } catch (error) {

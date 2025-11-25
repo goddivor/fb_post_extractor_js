@@ -1,79 +1,130 @@
+console.log('[FB Popup] Loaded');
+
+const extractBtn = document.getElementById('extractBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const statusDiv = document.getElementById('status');
+const profileIdInput = document.getElementById('profileId');
+const keywordsInput = document.getElementById('keywords');
+const maxPostsInput = document.getElementById('maxPosts');
+const stopDateInput = document.getElementById('stopDate');
+
 let extractedPosts = [];
 
-// Auto-remplir le Profile ID au chargement de la popup
+// Valeurs par défaut
+const DEFAULT_KEYWORDS = 'cateno, luca, federico, basile';
+const DEFAULT_STOP_DATE = '2024-01-01';
+
+// Charger les valeurs sauvegardées au chargement du popup
+chrome.storage.local.get(['savedProfileId', 'savedKeywords', 'savedMaxPosts', 'savedStopDate'], (result) => {
+  console.log('[FB Popup] Loaded saved values:', result);
+
+  // Auto-remplir les valeurs sauvegardées
+  if (result.savedProfileId) {
+    profileIdInput.value = result.savedProfileId;
+  }
+
+  keywordsInput.value = result.savedKeywords || DEFAULT_KEYWORDS;
+
+  if (result.savedMaxPosts !== undefined) {
+    maxPostsInput.value = result.savedMaxPosts;
+  }
+
+  stopDateInput.value = result.savedStopDate || DEFAULT_STOP_DATE;
+});
+
+// Auto-remplir le Profile ID depuis la page Facebook (prioritaire)
 (async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (tab.url && tab.url.includes('facebook.com')) {
-      // Demander l'ID du profil au content script
       const response = await chrome.tabs.sendMessage(tab.id, { action: 'getProfileId' });
 
       if (response && response.profileId) {
-        const profileIdInput = document.getElementById('profileId');
         profileIdInput.value = response.profileId;
-        console.log('Auto-filled profile ID:', response.profileId);
+        console.log('[FB Popup] Auto-filled profile ID:', response.profileId);
       }
     }
   } catch (error) {
-    // Ignorer les erreurs silencieusement (ex: si pas sur Facebook)
-    console.log('Could not auto-fill profile ID:', error.message);
+    console.log('[FB Popup] Could not auto-fill profile ID:', error.message);
   }
 })();
 
-document.getElementById('extractBtn').addEventListener('click', async () => {
-  const profileId = document.getElementById('profileId').value.trim();
-  const maxPosts = parseInt(document.getElementById('maxPosts').value) || 0;
-  const extractBtn = document.getElementById('extractBtn');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const status = document.getElementById('status');
+// Afficher un message de status
+function showStatus(message, type = 'info') {
+  statusDiv.textContent = message;
+  statusDiv.className = `status ${type}`;
+  statusDiv.classList.remove('hidden');
+}
 
-  // Vérifier que l'ID est fourni
-  if (!profileId) {
-    status.className = 'show error';
-    status.textContent = '❌ Please enter a Profile ID';
-    return;
-  }
-
-  extractBtn.disabled = true;
-  extractBtn.textContent = '⏳ Extracting...';
-  status.className = 'show';
-  status.textContent = 'Starting extraction...';
-
+// Démarrer l'extraction
+extractBtn.addEventListener('click', async () => {
   try {
-    // Récupérer l'onglet actif
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const profileId = profileIdInput.value.trim();
+    const keywords = keywordsInput.value
+      .split(',')
+      .map(k => k.trim())
+      .filter(k => k.length > 0);
+    const maxPosts = parseInt(maxPostsInput.value) || 0;
+    const stopDate = stopDateInput.value; // Format YYYY-MM-DD
 
-    if (!tab.url || !tab.url.includes('facebook.com')) {
-      throw new Error('Please open a Facebook profile page first!');
+    if (!profileId) {
+      showStatus('Please enter a Profile ID', 'error');
+      return;
     }
 
-    // Envoyer un message au content script
+    // Sauvegarder les valeurs pour la prochaine fois
+    chrome.storage.local.set({
+      savedProfileId: profileId,
+      savedKeywords: keywordsInput.value,
+      savedMaxPosts: maxPosts,
+      savedStopDate: stopDate
+    }, () => {
+      console.log('[FB Popup] Saved values:', { profileId, keywords, maxPosts, stopDate });
+    });
+
+    extractBtn.disabled = true;
+    extractBtn.textContent = 'Extracting...';
+    showStatus('Starting extraction...');
+
+    // Obtenir l'onglet actif
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Vérifier qu'on est sur Facebook
+    if (!tab.url || !tab.url.includes('facebook.com')) {
+      showStatus('Please navigate to a Facebook profile first', 'error');
+      extractBtn.disabled = false;
+      extractBtn.textContent = 'Start Extraction';
+      return;
+    }
+
+    // Envoyer le message au content script
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'extractPosts',
       profileId: profileId,
-      maxPosts: maxPosts
+      keywords: keywords, // Passer les keywords
+      maxPosts: maxPosts,
+      stopDate: stopDate
     });
 
-    if (response.success) {
+    if (response && response.success) {
       extractedPosts = response.posts;
-      status.className = 'show success';
-      status.innerHTML = `✅ Extracted <span id="postCount">${extractedPosts.length}</span> posts successfully!`;
+      showStatus(`Extracted ${extractedPosts.length} posts successfully!`, 'success');
       downloadBtn.style.display = 'block';
     } else {
-      throw new Error(response.error || 'Extraction failed');
+      throw new Error(response?.error || 'Extraction failed');
     }
   } catch (error) {
-    status.className = 'show error';
-    status.textContent = `❌ Error: ${error.message}`;
-    console.error('Extraction error:', error);
+    console.error('[FB Popup] Error:', error);
+    showStatus('Error: ' + error.message, 'error');
   } finally {
     extractBtn.disabled = false;
-    extractBtn.textContent = '🚀 Extract Posts';
+    extractBtn.textContent = 'Start Extraction';
   }
 });
 
-document.getElementById('downloadBtn').addEventListener('click', () => {
+// Télécharger le JSON
+downloadBtn.addEventListener('click', () => {
   const jsonString = JSON.stringify(extractedPosts, null, 2);
   const blob = new Blob([jsonString], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -86,7 +137,5 @@ document.getElementById('downloadBtn').addEventListener('click', () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-  const status = document.getElementById('status');
-  status.className = 'show success';
-  status.textContent = '✅ Downloaded successfully!';
+  showStatus('Downloaded successfully!', 'success');
 });
