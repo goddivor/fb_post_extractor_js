@@ -97,9 +97,8 @@ extractBtn.addEventListener('click', async () => {
     });
 
     if (response && response.success) {
-      extractedPosts = response.posts;
-      showStatus(`Extracted ${extractedPosts.length} posts successfully!`, 'success');
-      downloadBtn.style.display = 'block';
+      showStatus(`Extraction complete! ${response.keywordMatches} keyword matches in ${response.batches} batches`, 'success');
+      // On n'affiche plus le bouton download car les PDFs sont générés automatiquement
     } else {
       throw new Error(response?.error || 'Extraction failed');
     }

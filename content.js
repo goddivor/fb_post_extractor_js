@@ -50,19 +50,24 @@ injectScript();
 // Écouter les messages du popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'extractPosts') {
-    console.log('Received extract request:', {
+    console.log('[Content] Received extract request:', {
       profileId: request.profileId,
       keywords: request.keywords,
       stopDate: request.stopDate
     });
 
     extractPosts(request.profileId, request.keywords, request.stopDate)
-      .then(posts => {
-        console.log('Extraction complete:', posts.length, 'posts');
-        sendResponse({ success: true, posts: posts });
+      .then(result => {
+        console.log('[Content] Extraction complete:', result);
+        sendResponse({
+          success: true,
+          totalPosts: result.totalPosts,
+          keywordMatches: result.keywordMatches,
+          batches: result.batches
+        });
       })
       .catch(error => {
-        console.error('Extraction error:', error);
+        console.error('[Content] Extraction error:', error);
         sendResponse({ success: false, error: error.message });
       });
 
@@ -76,62 +81,119 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Fonction principale d'extraction
+// Simple keyword matching - case insensitive
+function matchKeywords(text, keywords) {
+  if (!text || !keywords || keywords.length === 0) {
+    return { found: false };
+  }
+
+  const lowerText = text.toLowerCase();
+
+  for (const keyword of keywords) {
+    const lowerKeyword = keyword.toLowerCase();
+    if (lowerText.includes(lowerKeyword)) {
+      return {
+        found: true,
+        matchedKeyword: keyword
+      };
+    }
+  }
+
+  return { found: false };
+}
+
+// Fonction principale d'extraction avec batch processing
 async function extractPosts(profileId, keywords = [], stopDate = null) {
   try {
-    console.log('Starting extraction...');
-    console.log('Profile ID:', profileId);
-    console.log('Keywords:', keywords);
-    console.log('Stop Date:', stopDate);
+    console.log('[Extractor] Starting extraction...');
+    console.log('[Extractor] Profile ID:', profileId);
+    console.log('[Extractor] Keywords:', keywords);
+    console.log('[Extractor] Stop Date:', stopDate);
 
-    // Convertir stopDate en timestamp (début de la journée)
+    // Convertir stopDate en timestamp
     let stopTimestamp = null;
     if (stopDate) {
       const stopDateObj = new Date(stopDate);
-      stopDateObj.setHours(0, 0, 0, 0); // Début de la journée
+      stopDateObj.setHours(0, 0, 0, 0);
       stopTimestamp = Math.floor(stopDateObj.getTime() / 1000);
-      console.log('Stop timestamp:', stopTimestamp, '(' + stopDateObj.toISOString() + ')');
-    } else {
-      console.warn('No stop date provided - will extract all posts!');
+      console.log('[Extractor] Stop timestamp:', stopTimestamp, '(' + stopDateObj.toISOString() + ')');
     }
 
     // Initialiser le contexte Facebook
     await initializeFacebookContext();
-    console.log('Facebook context initialized');
+    console.log('[Extractor] Facebook context initialized');
 
-    // Récupérer les posts
-    const allPosts = [];
+    // State pour batch processing
+    const BATCH_SIZE = 12; // 4 fetches × 3 posts
+    let currentBatch = [];
+    let batchNumber = 0;
+    let totalPostsExtracted = 0;
+    let totalKeywordMatches = 0;
+
     let cursor = null;
     let hasNextPage = true;
     let pageCount = 0;
 
     while (hasNextPage) {
       pageCount++;
-      console.log(`Fetching page ${pageCount}...`);
+      console.log(`[Extractor] Fetching page ${pageCount}...`);
 
-      // Toujours demander 10 posts par page
-      const response = await fetchPostsPage(profileId, cursor, 10);
+      // Fetch 3 posts par requête
+      const response = await fetchPostsPage(profileId, cursor, 3);
 
       if (response.posts && response.posts.length > 0) {
-        // Vérifier la date d'arrêt pour chaque post
         let reachedStopDate = false;
 
         for (const post of response.posts) {
           // Vérifier si on a atteint la date limite
           if (stopTimestamp && post.creation_time > 0 && post.creation_time < stopTimestamp) {
-            console.log(`✓ Reached stop date! Post date: ${new Date(post.creation_time * 1000).toISOString()}`);
+            console.log(`[Extractor] ✓ Reached stop date! Post date: ${new Date(post.creation_time * 1000).toISOString()}`);
             reachedStopDate = true;
             break;
           }
 
-          allPosts.push(post);
+          totalPostsExtracted++;
+          currentBatch.push(post);
+
+          // Traiter le batch quand on atteint 12 posts (4 fetches)
+          if (currentBatch.length >= BATCH_SIZE) {
+            batchNumber++;
+            console.log(`[Extractor] Batch ${batchNumber} ready (${currentBatch.length} posts) - Processing keywords...`);
+
+            // Filtrer les posts qui matchent les keywords
+            const matchedPosts = [];
+            for (const post of currentBatch) {
+              const match = matchKeywords(post.text, keywords);
+              if (match.found) {
+                matchedPosts.push({
+                  ...post,
+                  matchedKeyword: match.matchedKeyword
+                });
+              }
+            }
+
+            console.log(`[Extractor] Batch ${batchNumber}: ${matchedPosts.length}/${currentBatch.length} posts matched keywords`);
+            totalKeywordMatches += matchedPosts.length;
+
+            // Envoyer au background pour capture et PDF
+            if (matchedPosts.length > 0) {
+              chrome.runtime.sendMessage({
+                action: 'processBatch',
+                batchNumber: batchNumber,
+                posts: matchedPosts,
+                keywords: keywords
+              });
+            }
+
+            // Réinitialiser le batch
+            currentBatch = [];
+          }
         }
 
-        console.log(`Got ${response.posts.length} posts (total: ${allPosts.length})`);
+        console.log(`[Extractor] Fetched ${response.posts.length} posts (total: ${totalPostsExtracted})`);
 
-        // Arrêter si on a atteint la date limite
         if (reachedStopDate) {
-          console.log('Stopping extraction: reached stop date');
+          console.log('[Extractor] Stopping extraction: reached stop date');
           break;
         }
       }
@@ -139,20 +201,58 @@ async function extractPosts(profileId, keywords = [], stopDate = null) {
       cursor = response.cursor;
       hasNextPage = response.hasNextPage && cursor;
 
-      // Rate limiting - attendre 2 secondes entre chaque page
+      // Rate limiting
       if (hasNextPage) {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
-    console.log(`Extraction complete: ${allPosts.length} posts extracted`);
+    // Traiter le dernier batch (si < 12 posts)
+    if (currentBatch.length > 0) {
+      batchNumber++;
+      console.log(`[Extractor] Final batch ${batchNumber} (${currentBatch.length} posts) - Processing keywords...`);
 
-    // Stocker les keywords pour une utilisation future (filtrage PDF)
-    allPosts.keywords = keywords;
+      const matchedPosts = [];
+      for (const post of currentBatch) {
+        const match = matchKeywords(post.text, keywords);
+        if (match.found) {
+          matchedPosts.push({
+            ...post,
+            matchedKeyword: match.matchedKeyword
+          });
+        }
+      }
 
-    return allPosts;
+      console.log(`[Extractor] Final batch ${batchNumber}: ${matchedPosts.length}/${currentBatch.length} posts matched keywords`);
+      totalKeywordMatches += matchedPosts.length;
+
+      if (matchedPosts.length > 0) {
+        chrome.runtime.sendMessage({
+          action: 'processBatch',
+          batchNumber: batchNumber,
+          posts: matchedPosts,
+          keywords: keywords
+        });
+      }
+    }
+
+    console.log(`[Extractor] Extraction complete!`);
+    console.log(`[Extractor] - Total posts: ${totalPostsExtracted}`);
+    console.log(`[Extractor] - Keyword matches: ${totalKeywordMatches}`);
+    console.log(`[Extractor] - Batches processed: ${batchNumber}`);
+
+    // Ne pas fermer la window ici - le background le fera automatiquement
+    // quand tous les batches auront été traités
+
+    // Retourner un résumé (pas tous les posts pour économiser la mémoire)
+    return {
+      success: true,
+      totalPosts: totalPostsExtracted,
+      keywordMatches: totalKeywordMatches,
+      batches: batchNumber
+    };
   } catch (error) {
-    console.error('extractPosts error:', error);
+    console.error('[Extractor] Error:', error);
     throw error;
   }
 }
